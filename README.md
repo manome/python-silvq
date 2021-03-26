@@ -38,8 +38,7 @@ For more information, [score_iris_silvq.py](score_iris_silvq.py).
 
 ## Techniques
 
-SilvqModel achieves high accuracy with one-shot learning.
-However, the following techniques can be used to improve accuracy.
+The following techniques can be used to improve accuracy.
 
 ```python
 from lvq.utils import choice_prototypes
