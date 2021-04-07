@@ -41,7 +41,6 @@ class SilvqModel():
         self.theta = theta # Threshold for adding prototypes
         self.bias_type = bias_type # Types of causal induction model
         self.max_n_prototypes = max_n_prototypes # Maximum number of prototypes
-        np.seterr(all='ignore') # Ignore RuntimeWarning: divide by zero
 
     def add_prototype(self, x, c):
         if self.n_prototypes < self.max_n_prototypes:
@@ -67,19 +66,20 @@ class SilvqModel():
         self.alpha = 1.0 - self.r
 
     def update_r(self):
-        if self.bias_type == 'cp':
-            self.r = self.cooccur_a / (self.cooccur_a + self.cooccur_b)
-        elif self.bias_type == 'rs':
-            self.r = (self.cooccur_a + self.cooccur_d) / (self.cooccur_a + self.cooccur_b + self.cooccur_c + self.cooccur_d)
-        elif self.bias_type == 'ls':
-            self.r = (self.cooccur_a + (self.cooccur_b / (self.cooccur_b + self.cooccur_d)) * self.cooccur_d) / (self.cooccur_a + self.cooccur_b + (self.cooccur_a / (self.cooccur_a + self.cooccur_c)) * self.cooccur_c + (self.cooccur_b / (self.cooccur_b + self.cooccur_d)) * self.cooccur_d)
-        elif self.bias_type == 'dp':
-            self.r = (((self.cooccur_a * self.cooccur_d - self.cooccur_b * self.cooccur_c)/((self.cooccur_a + self.cooccur_b) * (self.cooccur_c + self.cooccur_d))) + 1) / 2
-        elif self.bias_type == 'dfh':
-            self.r = self.cooccur_a / np.sqrt((self.cooccur_a + self.cooccur_b) * (self.cooccur_a + self.cooccur_c))
-        elif self.bias_type == 'paris':
-            self.r = self.cooccur_a / (self.cooccur_a + self.cooccur_b + self.cooccur_c)
-        self.r[np.isnan(self.r)] = 0
+        with np.errstate(all='ignore'):
+            if self.bias_type == 'cp':
+                self.r = self.cooccur_a / (self.cooccur_a + self.cooccur_b)
+            elif self.bias_type == 'rs':
+                self.r = (self.cooccur_a + self.cooccur_d) / (self.cooccur_a + self.cooccur_b + self.cooccur_c + self.cooccur_d)
+            elif self.bias_type == 'ls':
+                self.r = (self.cooccur_a + (self.cooccur_b / (self.cooccur_b + self.cooccur_d)) * self.cooccur_d) / (self.cooccur_a + self.cooccur_b + (self.cooccur_a / (self.cooccur_a + self.cooccur_c)) * self.cooccur_c + (self.cooccur_b / (self.cooccur_b + self.cooccur_d)) * self.cooccur_d)
+            elif self.bias_type == 'dp':
+                self.r = (((self.cooccur_a * self.cooccur_d - self.cooccur_b * self.cooccur_c)/((self.cooccur_a + self.cooccur_b) * (self.cooccur_c + self.cooccur_d))) + 1) / 2
+            elif self.bias_type == 'dfh':
+                self.r = self.cooccur_a / np.sqrt((self.cooccur_a + self.cooccur_b) * (self.cooccur_a + self.cooccur_c))
+            elif self.bias_type == 'paris':
+                self.r = self.cooccur_a / (self.cooccur_a + self.cooccur_b + self.cooccur_c)
+            self.r[np.isnan(self.r)] = 0
 
     def update_cooccur(self, idx_c_win, c_win, c):
         if c_win == c:
