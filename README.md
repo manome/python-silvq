@@ -67,5 +67,10 @@ It also shows the prototypes (diamond).
 
 For more information, [plot2d_artificial_dataset1_silvq.py](plot2d_artificial_dataset1_silvq.py).
 
+## Note
+SilvqModel provides a learning algorithm that can be intuitively understood. To improve SILVQ performance, distances other than the Euclidean distance, such as cosine distance, may be used instead. As with advanced LVQ algorithms designing models to strictly minimize classification errors may be possible. However, human learning is variable and compound; it is not exclusively based on minimizing the classification errors.
+
+This research aims to contribute to both the computer science and cognitive science fields and hopes to support the research of explainable artificial intelligence (XAI) to address the black box problem of machine learning.
+
 ## License
 This is free and open-source software licensed under the 3-clause BSD license.
