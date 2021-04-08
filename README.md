@@ -62,12 +62,6 @@ The plot shows the target class of each data point (big circle) and which class 
 It also shows the prototypes (diamond).
 
 <p align='center'>
-    <img src='img/plot2d_moons_silvq.png' alt='plot2d_moons_silvq.png'>
-</p>
-
-For more information, [plot2d_moons_silvq.py](plot2d_moons_silvq.py).
-
-<p align='center'>
     <img src='img/plot2d_artificial_dataset1_silvq.png' alt='plot2d_artificial_dataset1_silvq'>
 </p>
 
@@ -78,6 +72,12 @@ For more information, [plot2d_artificial_dataset1_silvq.py](plot2d_artificial_da
 </p>
 
 For more information, [plot2d_artificial_dataset2_silvq.py](plot2d_artificial_dataset2_silvq.py).
+
+<p align='center'>
+    <img src='img/plot2d_moons_silvq.png' alt='plot2d_moons_silvq.png'>
+</p>
+
+For more information, [plot2d_moons_silvq.py](plot2d_moons_silvq.py).
 
 ## Note
 Self-incremental learning vector quantization (SILVQ) provides a learning algorithm that can be intuitively understood. To improve SILVQ performance, distances other than the Euclidean distance, such as cosine distance, may be used instead. As with advanced LVQ algorithms designing models to strictly minimize classification errors may be possible. However, human learning is variable and compound; it is not exclusively based on minimizing the classification errors.
