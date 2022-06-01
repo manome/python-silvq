@@ -5,6 +5,11 @@ Self-incremental learning vector quantization with human cognitive biases (https
 
 Compatible with Python3.6 and above.
 
+## Requirements
+
+- NumPy
+- scikit-learn
+
 ## Quickstart
 
 This is the minimum code to run SilvqModel.
