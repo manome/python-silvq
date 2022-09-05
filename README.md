@@ -9,6 +9,7 @@ Compatible with Python3.6 and above.
 
 - NumPy
 - scikit-learn
+- matplotlib
 
 ## Quickstart
 
