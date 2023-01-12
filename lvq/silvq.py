@@ -58,7 +58,7 @@ class SilvqModel():
         os.makedirs(path, exist_ok=True)
         data = np.zeros((self.m.shape[0], self.m.shape[1] + 1))
         data[:, :-1] = self.m
-        data[:, -1] = self.c.astype('int64')
+        data[:, -1] = self.c
         np.savetxt('{}{}'.format(path, filename), data, delimiter=',')
         print('export model as compressed data. (file: {}{})'.format(path, filename))
 
