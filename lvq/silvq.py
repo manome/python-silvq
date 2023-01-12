@@ -3,6 +3,7 @@
 # Author: Nobuhito Manome <manome@g.ecc.u-tokyo.ac.jp>
 # License: BSD 3 clause
 
+import os
 import numpy as np
 
 class SilvqModel():
@@ -38,9 +39,49 @@ class SilvqModel():
         self.cooccur_d = np.zeros(self.n_prototypes)
         self.r = np.zeros(self.n_prototypes) # Label confidence (strength of the causal relationship)
         self.alpha = np.zeros(self.n_prototypes) # Learning rate
+        self.t = np.zeros(self.n_prototypes) # Number of learning times
         self.theta = theta # Threshold for adding prototypes
         self.bias_type = bias_type # Types of causal induction model
         self.max_n_prototypes = max_n_prototypes # Maximum number of prototypes
+
+    def export_as_compressed_data(self, path='output/', filename='compressed_data.csv'):
+        '''
+        export model as compressed data.
+        ----------
+        Parameters
+        ----------
+        path : str, optional (default='output/')
+            Save path.
+        filename : str, optional (default='compressed_data.csv')
+            Save filename.
+        '''
+        os.makedirs(path, exist_ok=True)
+        data = np.zeros((self.m.shape[0], self.m.shape[1] + 1))
+        data[:, :-1] = self.m
+        data[:, -1] = self.c.astype('int64')
+        np.savetxt('{}{}'.format(path, filename), data, delimiter=',')
+        print('export model as compressed data. (file: {}{})'.format(path, filename))
+
+    def delete_prototype(self, age):
+        '''
+        delete prototypes below a certain number of learning times.
+        ----------
+        Parameters
+        ----------
+        age : int
+            Number of learning times.
+        '''
+        idx = np.where(self.t <= age)
+        self.cooccur_a = np.delete(self.cooccur_a, idx[0], axis = 0)
+        self.cooccur_b = np.delete(self.cooccur_b, idx[0], axis = 0)
+        self.cooccur_c = np.delete(self.cooccur_c, idx[0], axis = 0)
+        self.cooccur_d = np.delete(self.cooccur_d, idx[0], axis = 0)
+        self.r = np.delete(self.r, idx[0], axis = 0)
+        self.alpha = np.delete(self.alpha, idx[0], axis = 0)
+        self.m = np.delete(self.m, idx[0], axis = 0)
+        self.c = np.delete(self.c, idx[0], axis = 0)
+        self.t = np.delete(self.t, idx[0], axis = 0)
+        self.n_prototypes -= idx[0].shape[0]
 
     def add_prototype(self, x, c):
         if self.n_prototypes < self.max_n_prototypes:
@@ -60,6 +101,7 @@ class SilvqModel():
                 self.alpha = np.append(self.alpha, 0)
             self.m = np.append(self.m, np.array([x]), axis=0)
             self.c = np.append(self.c, c)
+            self.t = np.append(self.t, 0)
             self.n_prototypes += 1
 
     def update_alpha(self):
@@ -98,6 +140,7 @@ class SilvqModel():
             c_win = self.c[idx_c_win]
             idx_c = np.where(self.c == c)[0]
             idx_dist_min_c = idx_c[np.argsort(dist[idx_c])[0]]
+            self.t[idx_c_win] += 1
             if c_win != c and self.r[idx_c_win] > self.theta:
                 self.add_prototype(x, c)
             else:

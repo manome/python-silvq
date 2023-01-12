@@ -10,7 +10,7 @@ from lvq.utils import plot2d
 
 def main():
     # Load dataset
-    dataset = np.loadtxt('data/artificial_dataset2.csv', delimiter=',')
+    dataset = np.loadtxt('output/artificial_dataset2.csv', delimiter=',')
     x = dataset[:, :-1].astype('float64')
     y = dataset[:, -1].astype('int64')
     # Split dataset into training set and test set
