@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_breast_cancer
 
 from lvq import SilvqModel
-from lvq.utils import plot2d
 
 def main():
     # Load dataset
@@ -27,7 +26,7 @@ def main():
     y_predict = model.predict(x_test)
 
     # Evaluating the model
-    print('** Original *****************************')
+    print('** Original ****************************')
     print('Accuracy: %.3f' %accuracy_score(y_test, y_predict))
     print('Number of prototypes: {}'.format(model.n_prototypes))
 
