@@ -83,7 +83,7 @@ model.fit(x_train, y_train, epochs=30)
 y_predict = model.predict(x_test)
 
 # Evaluating the model
-print('** Original *****************************')
+print('** Original ****************************')
 print('Accuracy: %.3f' %accuracy_score(y_test, y_predict))
 print('Number of prototypes: {}'.format(model.n_prototypes))
 
