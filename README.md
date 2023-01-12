@@ -64,11 +64,19 @@ You can use this model to perform data compression and noise reduction.
 ```python
 import numpy as np
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_breast_cancer
 from lvq import SilvqModel
+
+# Load dataset
+breast_cancer = load_breast_cancer()
+x = breast_cancer.data
+y = breast_cancer.target
+# Split dataset into training set and test set
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=8, shuffle=True, stratify=y)
 
 # Generating model
 model = SilvqModel(x.shape[1], theta=0.5, bias_type='ls')
-
 # Training the model
 model.fit(x_train, y_train, epochs=30)
 # Predict the response for test dataset
