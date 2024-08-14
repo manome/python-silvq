@@ -36,7 +36,7 @@ def main():
     # Displaying 10 conformal prediction results
     print('** Displaying 10 conformal prediction results **********')
     for idx in range(10):
-        print('Sample{}: {}'.format(idx+1, conformal_predictions[idx]))
+        print('Test{}: True: {}, Predict: {}'.format(idx, y_test[idx], conformal_predictions[idx]))
     print('********************************************************')
 
 if __name__ == '__main__':
