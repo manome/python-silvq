@@ -111,8 +111,11 @@ def accuracy_score_conformal_predictions(y_test, conformal_predictions):
         The accuracy of the conformal predictions, i.e., the proportion of test samples
         for which the true label is among the predicted classes.
     '''
+    # Convert y_test and conformal_predictions to numpy arrays for easier processing
     y_test = np.asarray(y_test)
     conformal_predictions = np.asarray([set(preds) for preds in conformal_predictions])
+    # Check if each true label is among the predicted classes for the corresponding sample
     correct_preds = np.array([y in preds for y, preds in zip(y_test, conformal_predictions)])
+    # Calculate the proportion of correct predictions
     accuracy = np.mean(correct_preds)
     return accuracy
