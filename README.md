@@ -57,6 +57,27 @@ model.fit(x_train, y_train, epochs=30)
 
 For more information, [score_wine_silvq.py](score_wine_silvq.py).
 
+## Conformal prediction
+
+Conformal prediction can be performed.
+
+```python
+from lvq import SilvqModel
+from lvq.utils import accuracy_score_conformal_predictions
+
+# Generating model
+model = SilvqModel(x.shape[1], theta=0.8, bias_type='ls')
+# Training the model
+model.fit(x_train, y_train, epochs=1)
+# Conformal predict
+conformal_predictions = model.conformal_predict(x_train, y_train, x_test, confidence_level=0.95, proba_threshold=None, top_k=None)
+
+# Evaluating the model
+print('Conformal prediction accuracy: %.3f' %accuracy_score_conformal_predictions(y_test, conformal_predictions))
+```
+
+For more information, [score_conformal_prediction_digits_silvq.py](score_conformal_prediction_digits_silvq.py).
+
 ## Data compression & noise reduction
 
 You can use this model to perform data compression and noise reduction.
