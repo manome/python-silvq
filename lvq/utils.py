@@ -88,3 +88,26 @@ def plot2d(model, x, y, title='dataset'):
     fig.align_labels([ax1, ax2])
     # Show plot
     plt.show()
+
+def accuracy_score_conformal_predictions(y_test, conformal_predictions):
+    '''
+    Calculate the accuracy of conformal predictions.
+    ----------
+    Parameters
+    ----------
+    y_test : array-like, shape = [n_samples]
+        True labels for the test data.
+    conformal_predictions : list of lists, length = [n_samples]
+        Each entry contains a list of predicted classes for the corresponding sample.
+    ----------
+    Returns
+    ----------
+    accuracy : float
+        The accuracy of the conformal predictions, i.e., the proportion of test samples
+        for which the true label is among the predicted classes.
+    '''
+    y_test = np.asarray(y_test)
+    conformal_predictions = np.asarray([set(preds) for preds in conformal_predictions])
+    correct_preds = np.array([y in preds for y, preds in zip(y_test, conformal_predictions)])
+    accuracy = np.mean(correct_preds)
+    return accuracy

@@ -217,3 +217,66 @@ class SilvqModel():
         for i, x in enumerate(x_test):
             y_predict_proba[i] = self.predict_proba_one(x)
         return y_predict_proba
+
+    def conformal_predict(self, x_train, y_train, x_test, confidence_level=0.95, proba_threshold=None, top_k=None):
+        '''
+        Generate conformal predictions for each input sample based on the given confidence level.
+        ----------
+        Parameters
+        ----------
+        x_train : array-like, shape = [n_samples, n_features]
+            Training input data.
+        y_train : array, shape = [n_samples]
+            True labels for the training data.
+        x_test : array-like, shape = [n_samples, n_features]
+            Test input data for which predictions are to be made.
+        confidence_level : float, optional (default=0.95)
+            Confidence level for the conformal prediction. It should be between 0 and 1.
+        proba_threshold : float, optional (default=None)
+            Minimum probability threshold for including a label in the predictions.
+        top_k : int, optional (default=None)
+            Maximum number of labels to output per test sample.
+        ----------
+        Returns
+        ----------
+        conformal_predictions : list of lists
+            For each test sample, a list of class indices that meet the conformal prediction criteria.
+        '''
+        # Predict labels for the training data
+        y_train_pred = self.predict(x_train)
+
+        # Calculate absolute errors between predicted and true labels
+        errors = np.abs(y_train - y_train_pred)
+
+        # Compute the quantile based on the desired confidence level
+        alpha = 1 - confidence_level
+        quantile = np.percentile(errors, 100 * (1 - alpha))
+
+        # Predict probabilities for the test data
+        y_test_proba = self.predict_proba(x_test)
+
+        # Find the maximum probability for each test sample
+        max_proba = np.max(y_test_proba, axis=1)
+
+        # Determine valid classes based on the quantile
+        valid_classes_matrix = np.abs(y_test_proba - max_proba[:, np.newaxis]) <= quantile
+
+        # Filter predictions based on the probability threshold, if specified
+        if proba_threshold is not None:
+            valid_classes_matrix &= (y_test_proba >= proba_threshold)
+
+        # If top_k is specified, limit the number of labels
+        if top_k is not None:
+            # Get the indices of the top_k highest probabilities for each sample
+            top_k_indices = np.argsort(-y_test_proba, axis=1)[:, :top_k]
+            # Create a mask for the top_k indices
+            top_k_mask = np.zeros_like(y_test_proba, dtype=bool)
+            for i, indices in enumerate(top_k_indices):
+                top_k_mask[i, indices] = True
+            # Apply the top_k mask to valid classes matrix
+            valid_classes_matrix &= top_k_mask
+
+        # Collect indices of valid classes for each test sample
+        conformal_predictions = [np.where(valid_classes)[0].tolist() for valid_classes in valid_classes_matrix]
+
+        return conformal_predictions
