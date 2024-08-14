@@ -191,3 +191,29 @@ class SilvqModel():
         for i, x in enumerate(x_test):
             y_predict[i] = self.predict_one(x)
         return y_predict
+
+    def predict_proba_one(self, x):
+        dist = np.linalg.norm(x - self.m, axis=1)
+        dist_sums = np.array([np.min(dist[self.c == c]) for c in np.unique(self.c)])
+        probabilities = 1 / dist_sums
+        probabilities /= np.sum(probabilities)
+        return probabilities
+
+    def predict_proba(self, x_test):
+        '''
+        Predict class probabilities for each input sample.
+        ----------
+        Parameters
+        ----------
+        x_test : array-like, shape = [n_samples, n_features]
+            Input data.
+        ----------
+        Returns
+        ----------
+        y_proba : array, shape = [n_samples, n_classes]
+            Returns class probabilities for each input sample.
+        '''
+        y_predict_proba = np.zeros([x_test.shape[0], np.unique(self.c).shape[0]])
+        for i, x in enumerate(x_test):
+            y_predict_proba[i] = self.predict_proba_one(x)
+        return y_predict_proba
