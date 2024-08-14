@@ -56,11 +56,9 @@ class SilvqModel():
             Save filename.
         '''
         os.makedirs(path, exist_ok=True)
-        data = np.zeros((self.m.shape[0], self.m.shape[1] + 1))
-        data[:, :-1] = self.m
-        data[:, -1] = self.c
-        np.savetxt('{}{}'.format(path, filename), data, delimiter=',')
-        print('export model as compressed data. (file: {}{})'.format(path, filename))
+        data = np.hstack([self.m, self.c.reshape(-1, 1)])
+        np.savetxt(os.path.join(path, filename), data, delimiter=',')
+        print(f'export model as compressed data. (file: {path}{filename})')
 
     def delete_prototype(self, age):
         '''
@@ -169,8 +167,23 @@ class SilvqModel():
                 self.learn_one(x_train[j], y_train[j])
 
     def predict_one(self, x):
+        '''
+        Predict the class label for a single input sample.
+        ----------
+        Parameters
+        ----------
+        x : array-like, shape = [n_features]
+            Single input data sample.
+        ----------
+        Returns
+        ----------
+        class_label : The predicted class label for the input sample.
+        '''
+        # Calculate the Euclidean distance between the input sample x and each vector in self.m
         dist = np.linalg.norm(x - self.m, axis=1)
+        # Find the index of the vector in self.m that has the minimum distance to the input sample
         idx_c_win = np.argmin(dist)
+        # Return the class label corresponding to the closest vector
         return self.c[idx_c_win]
 
     def predict(self, x_test):
@@ -187,15 +200,35 @@ class SilvqModel():
         y_predict : array, shape = [n_samples]
             Returns predicted values.
         '''
-        y_predict = np.zeros(x_test.shape[0])
-        for i, x in enumerate(x_test):
-            y_predict[i] = self.predict_one(x)
+        # Calculate the distance from each sample in x_test to each vector in self.m
+        dist = np.linalg.norm(x_test[:, np.newaxis] - self.m, axis=2)
+        # Find the index of the minimum distance for each sample
+        idx_c_win = np.argmin(dist, axis=1)
+        # Use the indices to get the corresponding class predictions
+        y_predict = self.c[idx_c_win]
         return y_predict
 
     def predict_proba_one(self, x):
+        '''
+        Predict class probabilities for a single input sample.
+        ----------
+        Parameters
+        ----------
+        x : array-like, shape = [n_features]
+            Single input data sample.
+        ----------
+        Returns
+        ----------
+        probabilities : array, shape = [n_classes]
+            Returns the predicted class probabilities for the input sample.
+        '''
+        # Calculate the Euclidean distance between the input sample x and each vector in self.m
         dist = np.linalg.norm(x - self.m, axis=1)
+        # For each unique class, find the minimum distance from the input sample to any vector in that class
         dist_sums = np.array([np.min(dist[self.c == c]) for c in np.unique(self.c)])
+        # Calculate the probabilities by taking the inverse of these minimum distances
         probabilities = 1 / dist_sums
+        # Normalize the probabilities so that they sum to 1
         probabilities /= np.sum(probabilities)
         return probabilities
 
@@ -213,10 +246,21 @@ class SilvqModel():
         y_proba : array, shape = [n_samples, n_classes]
             Returns class probabilities for each input sample.
         '''
-        y_predict_proba = np.zeros([x_test.shape[0], np.unique(self.c).shape[0]])
-        for i, x in enumerate(x_test):
-            y_predict_proba[i] = self.predict_proba_one(x)
-        return y_predict_proba
+        # Calculate the distance from each sample in x_test to each vector in self.m
+        dist = np.linalg.norm(x_test[:, np.newaxis] - self.m, axis=2)
+        # Get unique classes and create a mask for each class
+        unique_classes = np.unique(self.c)
+        class_masks = {c: self.c == c for c in unique_classes}
+        # Initialize an array to store the minimum distances for each class
+        dist_sums = np.zeros((x_test.shape[0], unique_classes.shape[0]))
+        # For each class, find the minimum distance for each sample
+        for idx, c in enumerate(unique_classes):
+            dist_sums[:, idx] = np.min(dist[:, class_masks[c]], axis=1)
+        # Calculate probabilities by taking the inverse of distances
+        probabilities = 1 / dist_sums
+        # Normalize the probabilities
+        probabilities /= np.sum(probabilities, axis=1, keepdims=True)
+        return probabilities
 
     def conformal_predict(self, x_train, y_train, x_test, confidence_level=0.95, proba_threshold=None, top_k=None):
         '''
@@ -244,27 +288,20 @@ class SilvqModel():
         '''
         # Predict labels for the training data
         y_train_pred = self.predict(x_train)
-
         # Calculate absolute errors between predicted and true labels
         errors = np.abs(y_train - y_train_pred)
-
         # Compute the quantile based on the desired confidence level
         alpha = 1 - confidence_level
         quantile = np.percentile(errors, 100 * (1 - alpha))
-
         # Predict probabilities for the test data
         y_test_proba = self.predict_proba(x_test)
-
         # Find the maximum probability for each test sample
         max_proba = np.max(y_test_proba, axis=1)
-
         # Determine valid classes based on the quantile
         valid_classes_matrix = np.abs(y_test_proba - max_proba[:, np.newaxis]) <= quantile
-
         # Filter predictions based on the probability threshold, if specified
         if proba_threshold is not None:
             valid_classes_matrix &= (y_test_proba >= proba_threshold)
-
         # If top_k is specified, limit the number of labels
         if top_k is not None:
             # Get the indices of the top_k highest probabilities for each sample
@@ -275,8 +312,6 @@ class SilvqModel():
                 top_k_mask[i, indices] = True
             # Apply the top_k mask to valid classes matrix
             valid_classes_matrix &= top_k_mask
-
         # Collect indices of valid classes for each test sample
         conformal_predictions = [np.where(valid_classes)[0].tolist() for valid_classes in valid_classes_matrix]
-
         return conformal_predictions
