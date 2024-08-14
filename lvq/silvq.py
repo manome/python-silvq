@@ -302,8 +302,6 @@ class SilvqModel():
         valid_classes_matrix = np.abs(y_test_proba - (y_test_proba.max(axis=1, keepdims=True))) <= quantile
         # Filter predictions based on the probability threshold, if specified
         if proba_threshold is not None:
-            if proba_threshold == 'auto':
-                proba_threshold = 1 / y_train_proba.shape[1]
             valid_classes_matrix &= (y_test_proba >= proba_threshold)
         # If top_k is specified, limit the number of labels
         if top_k is not None:
