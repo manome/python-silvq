@@ -28,7 +28,7 @@ def main():
     print('Accuracy: %.3f' %accuracy_score(y_test, y_predict))
 
     # Conformal predict
-    conformal_predictions = model.conformal_predict(x_train, y_train, x_test, confidence_level=0.99, proba_threshold=0.101, top_k=3)
+    conformal_predictions = model.conformal_predict(x_train, y_train, x_test, confidence_level=0.99, proba_threshold='auto', top_k=3)
 
     # Evaluating the model
     print('Conformal prediction accuracy: %.3f' %accuracy_score_conformal_predictions(y_test, conformal_predictions))

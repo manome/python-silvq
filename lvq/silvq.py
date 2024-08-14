@@ -226,6 +226,8 @@ class SilvqModel():
         dist = np.linalg.norm(x - self.m, axis=1)
         # For each unique class, find the minimum distance from the input sample to any vector in that class
         dist_sums = np.array([np.min(dist[self.c == c]) for c in np.unique(self.c)])
+        # Replace zeros in dist_sums with a small value to avoid division by zero
+        dist_sums[dist_sums == 0] = 1e-10
         # Calculate the probabilities by taking the inverse of these minimum distances
         probabilities = 1 / dist_sums
         # Normalize the probabilities so that they sum to 1
@@ -256,6 +258,8 @@ class SilvqModel():
         # For each class, find the minimum distance for each sample
         for idx, c in enumerate(unique_classes):
             dist_sums[:, idx] = np.min(dist[:, class_masks[c]], axis=1)
+        # Replace zeros in dist_sums with a small value to avoid division by zero
+        dist_sums[dist_sums == 0] = 1e-10
         # Calculate probabilities by taking the inverse of distances
         probabilities = 1 / dist_sums
         # Normalize the probabilities
@@ -286,31 +290,27 @@ class SilvqModel():
         conformal_predictions : list of lists
             For each test sample, a list of class indices that meet the conformal prediction criteria.
         '''
-        # Predict labels for the training data
-        y_train_pred = self.predict(x_train)
-        # Calculate absolute errors between predicted and true labels
-        errors = np.abs(y_train - y_train_pred)
-        # Compute the quantile based on the desired confidence level
+        # Predict probabilities for the training data
+        y_train_proba = self.predict_proba(x_train)
+        # Compute the absolute errors based on the training data
         alpha = 1 - confidence_level
-        quantile = np.percentile(errors, 100 * (1 - alpha))
+        errors = np.abs(y_train_proba - (y_train_proba.max(axis=1, keepdims=True)))
+        quantile = np.percentile(np.max(errors, axis=1), 100 * (1 - alpha))
         # Predict probabilities for the test data
         y_test_proba = self.predict_proba(x_test)
-        # Find the maximum probability for each test sample
-        max_proba = np.max(y_test_proba, axis=1)
         # Determine valid classes based on the quantile
-        valid_classes_matrix = np.abs(y_test_proba - max_proba[:, np.newaxis]) <= quantile
+        valid_classes_matrix = np.abs(y_test_proba - (y_test_proba.max(axis=1, keepdims=True))) <= quantile
         # Filter predictions based on the probability threshold, if specified
         if proba_threshold is not None:
+            if proba_threshold == 'auto':
+                proba_threshold = 1 / y_train_proba.shape[1]
             valid_classes_matrix &= (y_test_proba >= proba_threshold)
         # If top_k is specified, limit the number of labels
         if top_k is not None:
-            # Get the indices of the top_k highest probabilities for each sample
-            top_k_indices = np.argsort(-y_test_proba, axis=1)[:, :top_k]
-            # Create a mask for the top_k indices
+            top_k_indices = np.argsort(y_test_proba, axis=1)[:, -top_k:]
             top_k_mask = np.zeros_like(y_test_proba, dtype=bool)
             for i, indices in enumerate(top_k_indices):
                 top_k_mask[i, indices] = True
-            # Apply the top_k mask to valid classes matrix
             valid_classes_matrix &= top_k_mask
         # Collect indices of valid classes for each test sample
         conformal_predictions = [np.where(valid_classes)[0].tolist() for valid_classes in valid_classes_matrix]
