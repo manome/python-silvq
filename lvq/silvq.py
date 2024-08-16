@@ -23,10 +23,10 @@ class SilvqModel():
         Class label must be placed as last entry of each prototype.
     max_n_prototypes : int, optional (default=50000)
         Maximum number of prototypes.
-    low_memory_mode : bool, optional (default=False)
+    low_memory_mode : bool, optional (default=True)
         If True, enable low memory mode to reduce memory usage.
     '''
-    def __init__(self, n_features, theta=0.5, bias_type='ls', initial_prototypes=None, max_n_prototypes=50000, low_memory_mode=False):
+    def __init__(self, n_features, theta=0.5, bias_type='ls', initial_prototypes=None, max_n_prototypes=50000, low_memory_mode=True):
         if initial_prototypes is None:
             self.n_prototypes = 0 # Number of prototypes
             self.m = np.zeros((0, n_features)) # Prototype vector
