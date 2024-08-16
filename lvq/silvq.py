@@ -23,8 +23,10 @@ class SilvqModel():
         Class label must be placed as last entry of each prototype.
     max_n_prototypes : int, optional (default=50000)
         Maximum number of prototypes.
+    low_memory_mode : bool, optional (default=False)
+        If True, enable low memory mode to reduce memory usage.
     '''
-    def __init__(self, n_features, theta=0.5, bias_type='ls', initial_prototypes=None, max_n_prototypes=50000):
+    def __init__(self, n_features, theta=0.5, bias_type='ls', initial_prototypes=None, max_n_prototypes=50000, low_memory_mode=False):
         if initial_prototypes is None:
             self.n_prototypes = 0 # Number of prototypes
             self.m = np.zeros((0, n_features)) # Prototype vector
@@ -43,6 +45,7 @@ class SilvqModel():
         self.theta = theta # Threshold for adding prototypes
         self.bias_type = bias_type # Types of causal induction model
         self.max_n_prototypes = max_n_prototypes # Maximum number of prototypes
+        self.low_memory_mode = low_memory_mode # Whether to use low memory mode
 
     def export_as_compressed_data(self, path='output/', filename='compressed_data.csv'):
         '''
@@ -200,12 +203,18 @@ class SilvqModel():
         y_predict : array, shape = [n_samples]
             Returns predicted values.
         '''
-        # Calculate the distance from each sample in x_test to each vector in self.m
-        dist = np.linalg.norm(x_test[:, np.newaxis] - self.m, axis=2)
-        # Find the index of the minimum distance for each sample
-        idx_c_win = np.argmin(dist, axis=1)
-        # Use the indices to get the corresponding class predictions
-        y_predict = self.c[idx_c_win]
+        if self.low_memory_mode:
+            # Predict the response for test dataset
+            y_predict = np.zeros(x_test.shape[0])
+            for i, x in enumerate(x_test):
+                y_predict[i] = self.predict_one(x)
+        else:
+            # Calculate the distance from each sample in x_test to each vector in self.m
+            dist = np.linalg.norm(x_test[:, np.newaxis] - self.m, axis=2)
+            # Find the index of the minimum distance for each sample
+            idx_c_win = np.argmin(dist, axis=1)
+            # Use the indices to get the corresponding class predictions
+            y_predict = self.c[idx_c_win]
         return y_predict
 
     def predict_proba_one(self, x):
@@ -245,26 +254,32 @@ class SilvqModel():
         ----------
         Returns
         ----------
-        y_proba : array, shape = [n_samples, n_classes]
+        y_predict_proba : array, shape = [n_samples, n_classes]
             Returns class probabilities for each input sample.
         '''
-        # Calculate the distance from each sample in x_test to each vector in self.m
-        dist = np.linalg.norm(x_test[:, np.newaxis] - self.m, axis=2)
-        # Get unique classes and create a mask for each class
-        unique_classes = np.unique(self.c)
-        class_masks = {c: self.c == c for c in unique_classes}
-        # Initialize an array to store the minimum distances for each class
-        dist_sums = np.zeros((x_test.shape[0], unique_classes.shape[0]))
-        # For each class, find the minimum distance for each sample
-        for idx, c in enumerate(unique_classes):
-            dist_sums[:, idx] = np.min(dist[:, class_masks[c]], axis=1)
-        # Replace zeros in dist_sums with a small value to avoid division by zero
-        dist_sums[dist_sums == 0] = 1e-10
-        # Calculate probabilities by taking the inverse of distances
-        probabilities = 1 / dist_sums
-        # Normalize the probabilities
-        probabilities /= np.sum(probabilities, axis=1, keepdims=True)
-        return probabilities
+        if self.low_memory_mode:
+            # Predict the response for test dataset
+            y_predict_proba = np.zeros([x_test.shape[0], np.unique(self.c).shape[0]])
+            for i, x in enumerate(x_test):
+                y_predict_proba[i] = self.predict_proba_one(x)
+        else:
+            # Calculate the distance from each sample in x_test to each vector in self.m
+            dist = np.linalg.norm(x_test[:, np.newaxis] - self.m, axis=2)
+            # Get unique classes and create a mask for each class
+            unique_classes = np.unique(self.c)
+            class_masks = {c: self.c == c for c in unique_classes}
+            # Initialize an array to store the minimum distances for each class
+            dist_sums = np.zeros((x_test.shape[0], unique_classes.shape[0]))
+            # For each class, find the minimum distance for each sample
+            for idx, c in enumerate(unique_classes):
+                dist_sums[:, idx] = np.min(dist[:, class_masks[c]], axis=1)
+            # Replace zeros in dist_sums with a small value to avoid division by zero
+            dist_sums[dist_sums == 0] = 1e-10
+            # Calculate probabilities by taking the inverse of distances
+            y_predict_proba = 1 / dist_sums
+            # Normalize the probabilities
+            y_predict_proba /= np.sum(y_predict_proba, axis=1, keepdims=True)
+        return y_predict_proba
 
     def conformal_predict(self, x_calib, y_calib, x_test, confidence_level=0.95, proba_threshold=None, top_k=None, sort_by_proba=True):
         '''
