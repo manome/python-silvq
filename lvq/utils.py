@@ -3,6 +3,7 @@
 # Author: Nobuhito Manome <manome@g.ecc.u-tokyo.ac.jp>
 # License: BSD 3 clause
 
+import warnings
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -93,6 +94,79 @@ def plot2d(model, x, y, title='dataset'):
     fig.align_labels([ax1, ax2])
     # Show plot
     plt.show()
+
+def conformal_predict(model, x_calib, y_calib, x_test, confidence_level=0.95, proba_threshold=None, top_k=None, sort_by_proba=True):
+    '''
+    Generate conformal predictions for each input sample based on the given confidence level.
+    ----------
+    Parameters
+    ----------
+    model : object
+        The trained model used to make conformal predictions.
+    x_calib : array-like, shape = [n_samples, n_features]
+        Calibration data.
+    y_calib : array, shape = [n_samples]
+        True labels for the calibration data.
+    x_test : array-like, shape = [n_samples, n_features]
+        Test input data for which predictions are to be made.
+    confidence_level : float, optional (default=0.95)
+        Confidence level for the conformal prediction. It should be between 0 and 1.
+    proba_threshold : float, optional (default=None)
+        Minimum probability threshold for including a label in the predictions.
+    top_k : int, optional (default=None)
+        Maximum number of labels to output per test sample.
+    sort_by_proba : bool, optional (default=True)
+        Whether to sort the output labels by their prediction probabilities.
+    ----------
+    Returns
+    ----------
+    conformal_predictions : list of lists
+        For each test sample, a list of class indices that meet the conformal prediction criteria.
+    '''
+    # Calculate the number of samples in the calibration dataset
+    n = x_calib.shape[0]
+    # Obtain the predicted probabilities for the calibration data
+    y_calib_proba = model.predict_proba(x_calib)
+    # Calculate the probability of the true class for each calibration sample
+    prob_true_class = y_calib_proba[np.arange(n), y_calib]
+    # Convert to uncertainty scores by subtracting the true class probabilities from 1
+    scores = 1 - prob_true_class
+    # Set alpha as the complement of the confidence level
+    alpha = 1 - confidence_level
+    # Calculate the quantile level for the uncertainty scores
+    q_level = np.ceil((n + 1) * (1 - alpha)) / n
+    if not (0 <= q_level <= 1):
+        # Apply clipping to ensure q_level is within the range [0, 1]
+        warnings.warn(f"Warning: q_level ({q_level}) is out of the range [0, 1]. It will be clipped.")
+        q_level = min(max(q_level, 0), 1)
+    qhat = np.quantile(scores, q_level, method='higher')
+    # Obtain the predicted probabilities for the test data
+    y_test_proba = model.predict_proba(x_test)
+    # Calculate the uncertainty scores for the test data
+    test_scores = 1 - y_test_proba
+    # Determine which classes are valid based on the quantile threshold
+    valid_classes_matrix = test_scores <= qhat
+    # Filter predictions based on the probability threshold, if specified
+    if proba_threshold is not None:
+        valid_classes_matrix &= (y_test_proba >= proba_threshold)
+    # If top_k is specified, limit the number of labels to the top k probabilities
+    if top_k is not None:
+        top_k_indices = np.argsort(y_test_proba, axis=1)[:, -top_k:]
+        top_k_mask = np.zeros_like(y_test_proba, dtype=bool)
+        for i, indices in enumerate(top_k_indices):
+            top_k_mask[i, indices] = True
+        valid_classes_matrix &= top_k_mask
+    # Collect the indices of valid classes for each test sample
+    conformal_predictions = []
+    for i, valid_classes in enumerate(valid_classes_matrix):
+        valid_classes_indices = np.where(valid_classes)[0]
+        if sort_by_proba:
+            # Sort valid classes by their predicted probability
+            sorted_classes = sorted(valid_classes_indices, key=lambda x: y_test_proba[i, x], reverse=True)
+            conformal_predictions.append(sorted_classes)
+        else:
+            conformal_predictions.append(valid_classes_indices.tolist())
+    return conformal_predictions
 
 def accuracy_score_conformal_predictions(y_test, conformal_predictions):
     '''

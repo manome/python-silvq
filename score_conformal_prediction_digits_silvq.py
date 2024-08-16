@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_digits
 
 from lvq import SilvqModel
-from lvq.utils import accuracy_score_conformal_predictions
+from lvq.utils import conformal_predict, accuracy_score_conformal_predictions
 
 def main():
     # Load dataset
@@ -29,17 +29,17 @@ def main():
     # Evaluate the model's accuracy
     print('Accuracy: %.3f' %accuracy_score(y_test, y_predict))
 
-    # Conformal predict
-    conformal_predictions = model.conformal_predict(x_calib, y_calib, x_test, confidence_level=0.99, proba_threshold=None, top_k=None, sort_by_proba=True)
+    # Conformal prediction
+    conformal_predictions = conformal_predict(model, x_calib, y_calib, x_test, confidence_level=0.99)
 
     # Evaluate the model's accuracy in conformal predictions
     print('Conformal prediction accuracy: %.3f' %accuracy_score_conformal_predictions(y_test, conformal_predictions))
 
     # Display the results of 10 conformal predictions
-    print('** Display 10 conformal predictions ********************')
+    print('** Displaying 10 sample conformal predictions')
     for idx in range(10):
-        print('Test{}: True: {}, Predict: {}'.format(idx, y_test[idx], conformal_predictions[idx]))
-    print('********************************************************')
+        print('Test{}: True Label: {}, Predicted: {}'.format(idx, y_test[idx], conformal_predictions[idx]))
+    print('*********************************************')
 
 if __name__ == '__main__':
     main()
